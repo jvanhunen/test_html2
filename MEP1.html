@@ -1,0 +1,234 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Modeling Earth Processes, week 1 - Timestepping in a finite difference model</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="https://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-09-26"><meta name="DC.source" content="MEP1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Modeling Earth Processes, week 1 - Timestepping in a finite difference model</h1><!--introduction--><p>Prof. Jeroen van Hunen</p><p>Department of Earth Sciences</p><p>Durham University</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">This session's learning objectives</a></li><li><a href="#2">Part 1: Modelling a Draining Bathtub</a></li><li><a href="#5">Part 2: Radioactive Decay</a></li></ul></div><h2 id="1">This session's learning objectives</h2><p>At the end of this session you will understand:</p><div><ul><li>the basic ingredients to build a numerical model</li><li>how timestepping works</li><li>modelling a radioactive decay system</li></ul></div><h2 id="2">Part 1: Modelling a Draining Bathtub</h2><p>1.1) Copy the following code into Matlab, run it, and check it produces the plot shown below. Make sure you understand what the code is doing.</p><pre class="codeinput"><span class="keyword">function</span> bath
+</pre><pre class="codeinput"><span class="comment">% purpose: calculates water volume in draining bath</span>
+<span class="comment">% method: explicit (Forward Euler) time integration</span>
+
+t   = linspace(0,500,10);
+dt  = t(2) - t(1);
+nt  = numel(t);
+
+<span class="comment">% set up arrays to store solution:</span>
+V   = zeros(size(t));
+V(1)= 500; <span class="comment">% initial condition</span>
+
+a   = 0.01; <span class="comment">%decay parameter</span>
+
+<span class="keyword">for</span> it=2:nt
+    V(it) = V(it-1) - dt*a*V(it-1); <span class="comment">% Forward Euler timestepping</span>
+<span class="keyword">end</span>
+
+<span class="comment">% plot volume against time with o-symbol and line:</span>
+plot (t, V, <span class="string">'o-'</span>)
+  xlabel(<span class="string">'t(sec)'</span>)
+  ylabel(<span class="string">'V(litres)'</span>)
+<span class="keyword">return</span>
+</pre><p><img vspace="5" hspace="5" src="https://duo.dur.ac.uk/bbcswebdav/courses/GEOL2251_2020/bath.png" alt=""> </p><p>1.2) Test your understanding with the following exercises:</p><p>a) Which governing equation (discussed in the first lecture) is solved here?</p><p>b) Derive the line inside the <tt>for</tt> loop from this governing equation. _*</p><p>c) How many timesteps does the code calculate?</p><p>1.3) To re-familiarize yourself with programming in Matlab, and to test your understanding of this model,      try to make the following changes to the code:</p><p>a) double the number of timesteps.</p><p>b) add a title to the plot.</p><p>c) The code above first defines the total timespan of the calculation and   the number of timesteps, and then calculates the timestep <tt>dt</tt>. Modify   the code such that, instead, the timestep <tt>dt</tt> and the total timespan are defined,   and the number of timesteps is calculated.</p><h2 id="5">Part 2: Radioactive Decay</h2><p>Uranium 235 ( <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> ) decays to Lead 207 ( <span class="MathJax_Preview"><img src="MEP1_eq08073465510302925127.png" alt="$^{207}Pb$"></span><script type="math/tex">^{207}Pb</script> ), with a half-life <span class="MathJax_Preview"><img src="MEP1_eq08597067864157147053.png" alt="$\tau=704$"></span><script type="math/tex">\tau=704</script> Myrs. In other words, in 704 Myrs, half of the available <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> decays to <span class="MathJax_Preview"><img src="MEP1_eq08073465510302925127.png" alt="$^{207}Pb$"></span><script type="math/tex">^{207}Pb</script> . More generally, each unit of time (say each million years) a constant fraction of  <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> decays to <span class="MathJax_Preview"><img src="MEP1_eq08073465510302925127.png" alt="$^{207}Pb$"></span><script type="math/tex">^{207}Pb</script> . The removal of <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> (to produce <span class="MathJax_Preview"><img src="MEP1_eq08073465510302925127.png" alt="$^{207}Pb$"></span><script type="math/tex">^{207}Pb</script> ) is therefore directly proportional to the available <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> itself (check this for yourself!). Quantities (or rather concentrations) of <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> and <span class="MathJax_Preview"><img src="MEP1_eq08073465510302925127.png" alt="$^{207}Pb$"></span><script type="math/tex">^{207}Pb</script> are usually measured with respect to the concentration of a stable isotope of the daughter element, in this case <span class="MathJax_Preview"><img src="MEP1_eq07692572429997969690.png" alt="$^{204}Pb$"></span><script type="math/tex">^{204}Pb</script>. At the start of Earth's life, the concentrations in the mantle of <span class="MathJax_Preview"><img src="MEP1_eq08073465510302925127.png" alt="$^{207}Pb$"></span><script type="math/tex">^{207}Pb</script> and <span class="MathJax_Preview"><img src="MEP1_eq11923948214990977147.png" alt="$^{235}U$"></span><script type="math/tex">^{235}U</script> relative to <span class="MathJax_Preview"><img src="MEP1_eq07692572429997969690.png" alt="$^{204}Pb$"></span><script type="math/tex">^{204}Pb</script> were <span class="MathJax_Preview"><img src="MEP1_eq01849787279568859752.png" alt="$\frac{^{207}Pb}{^{204}Pb}  = 10.294$"></span><script type="math/tex">\frac{^{207}Pb}{^{204}Pb}  = 10.294</script> and <span class="MathJax_Preview"><img src="MEP1_eq09861563222206553620.png" alt="$\frac{^{235}U}{^{204}Pb} = 5.5$"></span><script type="math/tex">\frac{^{235}U}{^{204}Pb} = 5.5</script>. Let's simplify notation and call <span class="MathJax_Preview"><img src="MEP1_eq04403084691825016512.png" alt="$\frac{^{235}U}{^{204}Pb}$"></span><script type="math/tex">\frac{^{235}U}{^{204}Pb}</script> simply <span class="MathJax_Preview"><img src="MEP1_eq03672095713503266041.png" alt="$N$"></span><script type="math/tex">N</script> . Mathematically, this radioactive decay is then written as:</p><p><span class="MathJax_Preview"><img src="MEP1_eq07065566277782980539.png" alt="$\frac{dN}{dt} = -\lambda N$"></span><script type="math/tex">\frac{dN}{dt} = -\lambda N</script>, with <span class="MathJax_Preview"><img src="MEP1_eq07657233533591063549.png" alt="$\lambda$"></span><script type="math/tex">\lambda</script> being the 'decay constant'.</p><p><b>NOTE:</b> Remember that an equation like this one, containing a variable and its derivative, is called a differential equation (DE). It nicely describes the physics of (in this case) radioactive decay, but it doesn't provide an immediate solution for the unknown variable <span class="MathJax_Preview"><img src="MEP1_eq03672095713503266041.png" alt="$N$"></span><script type="math/tex">N</script>. We have to solve it first. In some cases, including this one, it is possible to solve the DE analytically --- in other cases, a numerical approximation must be used.</p><p>1.4) The analytical solution to the DE for radioactive decay is given by <span class="MathJax_Preview"><img src="MEP1_eq14295746684989453473.png" alt="$N = N_0\exp{(-\lambda t)}$"></span><script type="math/tex">N = N_0\exp{(-\lambda t)}</script>. Let's define <span class="MathJax_Preview"><img src="MEP1_eq12656067504604335951.png" alt="$t$"></span><script type="math/tex">t</script> as the time since the start of Earth's life. What is the physical meaning of <span class="MathJax_Preview"><img src="MEP1_eq14438439004078460794.png" alt="$N_0$"></span><script type="math/tex">N_0</script>, and what value should we use for it?</p><p>1.5) The relationship between the decay constant <span class="MathJax_Preview"><img src="MEP1_eq07657233533591063549.png" alt="$\lambda$"></span><script type="math/tex">\lambda</script> and the half-life <span class="MathJax_Preview"><img src="MEP1_eq14593889327204786447.png" alt="$\tau$"></span><script type="math/tex">\tau</script> can be calculated using the analytical solution. Given that the half-life is the time when half of the original radionuclide remains, find <span class="MathJax_Preview"><img src="MEP1_eq07657233533591063549.png" alt="$\lambda$"></span><script type="math/tex">\lambda</script> as a function of <span class="MathJax_Preview"><img src="MEP1_eq14593889327204786447.png" alt="$\tau$"></span><script type="math/tex">\tau</script>. What are the units of <span class="MathJax_Preview"><img src="MEP1_eq07657233533591063549.png" alt="$\lambda$"></span><script type="math/tex">\lambda</script> ?</p><p>1.6) Rewrite the differential equation <span class="MathJax_Preview"><img src="MEP1_eq07065566277782980539.png" alt="$\frac{dN}{dt} = -\lambda N$"></span><script type="math/tex">\frac{dN}{dt} = -\lambda N</script> in a Forward Euler finite difference format. Rearrange the equation such that the unknown new quantity of <span class="MathJax_Preview"><img src="MEP1_eq03672095713503266041.png" alt="$N$"></span><script type="math/tex">N</script> for the <i>new</i> timestep <tt>it</tt> appears on the left hand side and all known quantities (i.e. constants and all information for the <i>old</i> timestep <tt>it-1</tt>) appear on the right hand side of the equation.</p><p>1.7) Before building the numerical model, check you've got all the required information:</p><div><ul><li>What is/are the key mathematical equation(s) you need to solve?</li><li>What will be the solution at the first timestep? This is the <i>initial condition</i>.</li><li>The model should run from the Earth's origin (<span class="MathJax_Preview"><img src="MEP1_eq16912281546434447644.png" alt="$t=0$"></span><script type="math/tex">t=0</script>) until today   (<span class="MathJax_Preview"><img src="MEP1_eq00310174190511130395.png" alt="$t=4567$"></span><script type="math/tex">t=4567</script> Myrs), and aim for approximately 10 timesteps. How large is one timestep?</li></ul></div><p>1.8) Now copy the m-file for the bathtub example above to a new file, and modify it to calculate <span class="MathJax_Preview"><img src="MEP1_eq03672095713503266041.png" alt="$N$"></span><script type="math/tex">N</script> from the origin of the Earth to the present-day using a Forward Euler method. Plot your results and check that they behave the way you expect.</p><p>1.9) Add the analytical solution to your code, and modify your plots to show the numerical and analytical solutions. How does the numerical solution compare to the analytical one?</p><p>1.10) Try different timesteps to check that the numerical solution approaches the analytical one for decreasing timesteps. This is called a <i>resolution test</i>.</p><p>1.11) Calculate the error of the numerical solution for <span class="MathJax_Preview"><img src="MEP1_eq03672095713503266041.png" alt="$N$"></span><script type="math/tex">N</script> (i.e. the (absolute) difference between the analytical and numerical solution for every timestep), and add it to the plot.</p><p>1.12) Add the Backward Euler method to your existing code, and repeat step 1.11.</p><p>1.13) Add the Crank-Nicholson method to your existing code and repeat step 1.11.</p><p>1.14) Which of the methods has the smallest error for a given size timestep and why?</p><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Modeling Earth Processes, week 1 - Timestepping in a finite difference model
+%
+% Prof. Jeroen van Hunen
+%
+% Department of Earth Sciences
+%
+% Durham University 
+%
+%% This session's learning objectives
+%
+% At the end of this session you will understand:
+%
+% * the basic ingredients to build a numerical model
+% * how timestepping works
+% * modelling a radioactive decay system
+%
+%% Part 1: Modelling a Draining Bathtub
+% 
+% 1.1) Copy the following code into Matlab, run it, and check it produces the 
+% plot shown below. Make sure you understand what the code is doing. 
+%
+function bath
+% purpose: calculates water volume in draining bath 
+% method: explicit (Forward Euler) time integration
+
+t   = linspace(0,500,10);
+dt  = t(2) - t(1);
+nt  = numel(t);
+
+% set up arrays to store solution:
+V   = zeros(size(t));
+V(1)= 500; % initial condition
+
+a   = 0.01; %decay parameter
+
+for it=2:nt
+    V(it) = V(it-1) - dt*a*V(it-1); % Forward Euler timestepping
+end
+
+% plot volume against time with o-symbol and line:
+plot (t, V, 'o-')
+  xlabel('t(sec)')
+  ylabel('V(litres)')
+return
+%%
+%
+% <<https://duo.dur.ac.uk/bbcswebdav/courses/GEOL2251_2020/bath.png>>
+%
+% 1.2) Test your understanding with the following exercises: 
+%
+% a) Which governing equation (discussed in the first lecture) is solved
+% here?  
+%
+% b) Derive the line inside the |for| loop from this governing equation. _*
+% 
+% c) How many timesteps does the code calculate? 
+%
+% 1.3) To re-familiarize yourself with programming in Matlab, and to test your understanding of this model, 
+%      try to make the following changes to the code:
+%
+% a) double the number of timesteps.
+% 
+% b) add a title to the plot.
+% 
+% c) The code above first defines the total timespan of the calculation and
+%   the number of timesteps, and then calculates the timestep |dt|. Modify
+%   the code such that, instead, the timestep |dt| and the total timespan are defined,
+%   and the number of timesteps is calculated. 
+% 
+
+%% Part 2: Radioactive Decay
+%
+%
+% Uranium 235 ( $^{235}U$ ) decays to Lead 207 ( $^{207}Pb$ ), with a half-life $\tau=704$ Myrs. In other
+% words, in 704 Myrs, half of the available $^{235}U$ decays to $^{207}Pb$ . More generally, each unit
+% of time (say each million years) a constant fraction of  $^{235}U$ decays to $^{207}Pb$ . The removal
+% of $^{235}U$ (to produce $^{207}Pb$ ) is therefore directly proportional to the available $^{235}U$ itself
+% (check this for yourself!). Quantities (or rather concentrations) of $^{235}U$ and $^{207}Pb$ are usually measured
+% with respect to the concentration of a stable isotope of the daughter element, in this
+% case $^{204}Pb$. At the start of Earth's life, the concentrations in the mantle
+% of $^{207}Pb$ and $^{235}U$ relative to $^{204}Pb$ were $\frac{^{207}Pb}{^{204}Pb}  = 10.294$ and
+% $\frac{^{235}U}{^{204}Pb} = 5.5$. Let's simplify notation and call $\frac{^{235}U}{^{204}Pb}$ simply $N$ .
+% Mathematically, this radioactive decay is then written as: 
+%
+% $\frac{dN}{dt} = -\lambda N$, with $\lambda$ being the 'decay constant'.
+%
+% *NOTE:* Remember that an equation like this one, containing a variable and its derivative, is called a
+% differential equation (DE). It nicely describes the physics of
+% (in this case) radioactive decay, but it doesn't provide an immediate solution for the
+% unknown variable $N$. We have to solve it first. In some cases, including this one, it
+% is possible to solve the DE analytically REPLACE_WITH_DASH_DASH- in other cases, a numerical approximation
+% must be used. 
+%
+% 1.4) The analytical solution to the DE for radioactive decay is given by $N =
+% N_0\exp{(-\lambda t)}$. Let's define $t$ as the time since the start of Earth's life. 
+% What is the physical meaning of $N_0$, and what value should we use for it?
+% 
+% 1.5) The relationship between the decay constant $\lambda$ and the half-life $\tau$ can
+% be calculated using the analytical solution. Given that the half-life is the time when
+% half of the original radionuclide remains, find $\lambda$ as a function of $\tau$. What
+% are the units of $\lambda$ ?
+% 
+% 1.6) Rewrite the differential equation $\frac{dN}{dt} = -\lambda N$ in a Forward Euler
+% finite difference format. Rearrange the equation such that the unknown new quantity of
+% $N$ for the _new_ timestep |it| appears on the left hand side and all known quantities 
+% (i.e. constants and all information for the _old_ timestep |it-1|) appear on the right hand side
+% of the equation.
+%
+% 1.7) Before building the numerical model, check you've got all the required information:
+%
+% * What is/are the key mathematical equation(s) you need to solve? 
+% * What will be the solution at the first timestep? This is the _initial condition_.
+% * The model should run from the Earth's origin ($t=0$) until today
+%   ($t=4567$ Myrs), and aim for approximately 10 timesteps. How large is one timestep?
+%
+% 1.8) Now copy the m-file for the bathtub example above to a new file, and modify it to 
+% calculate $N$ from the origin of the 
+% Earth to the present-day using a Forward Euler method. 
+% Plot your results and check that they behave the way you expect.
+%
+% 1.9) Add the analytical solution to your code, and modify
+% your plots to show the numerical and analytical solutions. How does
+% the numerical solution compare to the analytical one?
+%
+% 1.10) Try different timesteps to check that the numerical solution approaches the
+% analytical one for decreasing timesteps. This is called a _resolution test_.
+%
+% 1.11) Calculate the error of the numerical solution for $N$ (i.e. the (absolute) 
+% difference between the analytical and numerical solution for every timestep), and 
+% add it to the plot. 
+% 
+% 1.12) Add the Backward Euler method to your existing code, and repeat step 1.11. 
+%
+% 1.13) Add the Crank-Nicholson method to your existing code and repeat step 1.11. 
+% 
+% 1.14) Which of the methods has the smallest error for a given size timestep and
+% why?
+
+##### SOURCE END #####
+--></body></html>
